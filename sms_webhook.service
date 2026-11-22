@@ -1,0 +1,18 @@
+[Unit]
+Description=Homelab HTTPS SMS Webhook Service (Message487 / SQLite)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/sms_webhook
+ExecStart=%h/sms_webhook/venv/bin/python %h/sms_webhook/run.py --host 0.0.0.0 --port 8443
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+# Hardening measures
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

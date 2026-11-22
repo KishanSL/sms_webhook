@@ -1,0 +1,43 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**', 'refactor/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    name: Lint, Types & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Setup pinned Python 3.12 via pinned uv (0.13.9) and activate venv via $GITHUB_PATH.
+      # Compatible with Debian-based runner containers (e.g. node:22-bookworm) and Ubuntu.
+      - name: Setup Python 3.12
+        run: |
+          curl -LsSf https://astral.sh/uv/0.13.9/install.sh | sh
+          source "$HOME/.local/bin/env"
+          uv venv --seed --python 3.12 /tmp/venv
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "/tmp/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: uv pip install --python /tmp/venv -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check app tests run.py scripts
+
+      - name: Mypy
+        run: mypy app
+
+      - name: Pytest
+        run: pytest -q
+
+      - name: JS syntax
+        run: for f in static/js/*.js; do node --check "$f"; done
+
+      - name: JS unit tests
+        run: node --test tests/test_frontend.test.js

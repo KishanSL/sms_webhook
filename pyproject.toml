@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["venv", ".venv"]
+
+[tool.ruff.lint]
+# E/F = pycodestyle errors + pyflakes, I = import sorting, UP = pyupgrade, B = bugbear.
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+  "E501",    # line length is handled by the formatter / editor
+  "B008",    # FastAPI uses function calls (Depends/Query) as defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]
+# run.py inserts the project root on sys.path before importing the app.
+"run.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true

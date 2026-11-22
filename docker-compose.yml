@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  sms-webhook:
+    image: docker.io/kishansl/sms-webhook:latest
+    container_name: sms-webhook
+    restart: always
+
+    # Map ports:
+    # 8443: Direct HTTPS (use 443:8443 if you want standard HTTPS port)
+    # 8080: Optional plain HTTP (useful if running behind Traefik, Nginx, or Caddy)
+    ports:
+      - "8443:8443"
+      - "8080:8080"
+
+    # Persistent host storage (:Z enables SELinux compatibility for Podman/Fedora/RHEL)
+    volumes:
+      - ./data:/app/data:Z
+      - ./certs:/app/certs:Z
+
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8443
+      - HTTPS_ENABLED=true
+      - AUTO_GENERATE_CERT=false
+      - SSL_CERTFILE=/app/certs/cert.pem
+      - SSL_KEYFILE=/app/certs/key.pem
+      - DB_PATH=/app/data/webhooks.db
+      - TZ=Asia/Kolkata
+      # Set a secret token for authentication (Header: 'Authorization: Bearer <secret>')
+      # - WEBHOOK_SECRET=change_me_to_a_secure_token
+      # GnuCash-web integration (both required to enable the Post buttons)
+      - GNUCASH_URL=${GNUCASH_URL}
+      - GNUCASH_API_TOKEN=${GNUCASH_API_TOKEN}
+
+    # Production container health monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -k https://127.0.0.1:8443/health || curl -f http://127.0.0.1:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits to protect host resources
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 128M
+
+    # Prevent container logs from consuming excessive disk space
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Settings - Homelab SMS Webhooks{% endblock %}
+{% block page_icon %}fa-gear{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}Banks, cards &amp; accounts, gnucash mapping and data{% endblock %}
+{% block header_actions %}
+        <button onclick="loadAll()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+          <span>Refresh</span>
+        </button>
+{% endblock %}
+{% block content %}
+
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Bank Sender Codes -->
+      <section class="bg-slate-800/90 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+        <div class="px-4 py-3 border-b border-slate-700">
+          <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-link text-emerald-400 mr-2"></i>Bank Sender Codes</h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">The middle part of the SMS sender, e.g. AD-<b class="text-slate-300">HDFCBK</b>-S. Only linked codes are parsed into transactions.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/80 text-slate-400 border-b border-slate-700 uppercase tracking-wider font-semibold">
+              <tr>
+                <th scope="col" class="py-2.5 px-4">Code</th>
+                <th scope="col" class="py-2.5 px-4">Bank Name</th>
+                <th scope="col" class="py-2.5 px-4 text-right">Txns</th>
+                <th scope="col" class="py-2.5 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="banksBody" class="divide-y divide-slate-700/60"></tbody>
+            <tfoot class="border-t border-slate-700 bg-slate-900/40">
+              <tr>
+                <td class="py-2.5 px-4">
+                  <input id="newHeader" maxlength="6" placeholder="CODE" class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-500 font-mono uppercase focus:outline-none focus:border-emerald-500">
+                </td>
+                <td class="py-2.5 px-4">
+                  <input id="newBankName" list="bankNameOptions" placeholder="Bank name" onkeydown="if (event.key === 'Enter') addBank()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                  <datalist id="bankNameOptions"></datalist>
+                </td>
+                <td></td>
+                <td class="py-2.5 px-4 text-right">
+                  <button onclick="addBank()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded transition"><i class="fa-solid fa-plus mr-1"></i>Link</button>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <!-- Unlinked Sender Codes -->
+      <section class="bg-slate-800/90 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+        <div class="px-4 py-3 border-b border-slate-700">
+          <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-circle-question text-amber-400 mr-2"></i>Unlinked Sender Codes</h2>
+          <p class="text-[11px] text-slate-400 mt-0.5">Codes seen in received messages that aren't linked to a bank.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/80 text-slate-400 border-b border-slate-700 uppercase tracking-wider font-semibold">
+              <tr>
+                <th scope="col" class="py-2.5 px-4">Code</th>
+                <th scope="col" class="py-2.5 px-4">Seen As</th>
+                <th scope="col" class="py-2.5 px-4 text-right">Messages</th>
+                <th scope="col" class="py-2.5 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="sendersBody" class="divide-y divide-slate-700/60"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Cards & Accounts -->
+    <section class="bg-slate-800/90 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+      <div class="px-4 py-3 border-b border-slate-700">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-credit-card text-blue-400 mr-2"></i>Cards &amp; Accounts</h2>
+        <p class="text-[11px] text-slate-400 mt-0.5">Every card / account seen in transactions. Give each a name you recognise.</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900/80 text-slate-400 border-b border-slate-700 uppercase tracking-wider font-semibold">
+            <tr>
+              <th scope="col" class="py-2.5 px-4">Bank</th>
+              <th scope="col" class="py-2.5 px-4">Card / Account</th>
+              <th scope="col" class="py-2.5 px-4">Name</th>
+              {% if gnucash_enabled %}
+              <th scope="col" class="py-2.5 px-4">GnuCash Account</th>
+              {% endif %}
+              <th scope="col" class="py-2.5 px-4 text-right">Txns</th>
+              <th scope="col" class="py-2.5 px-4">Last Used</th>
+              <th scope="col" class="py-2.5 px-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="accountsBody" class="divide-y divide-slate-700/60"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Data: export / import / reset -->
+    <section class="bg-slate-800/90 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+      <div class="px-4 py-3 border-b border-slate-700">
+        <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-database text-emerald-400 mr-2"></i>Data</h2>
+        <p class="text-[11px] text-slate-400 mt-0.5">Export everything to JSON, restore it later, or start over.</p>
+      </div>
+      <div class="p-4 flex flex-wrap items-center gap-2">
+        <button onclick="exportData()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 transition">
+          <i class="fa-solid fa-file-arrow-down mr-1"></i>Export JSON
+        </button>
+        <button onclick="document.getElementById('importFile').click()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 transition">
+          <i class="fa-solid fa-file-arrow-up mr-1"></i>Import JSON
+        </button>
+        <input type="file" id="importFile" accept=".json,application/json" class="hidden" onchange="importData(this)">
+        <span class="text-[11px] text-slate-500">Import asks whether to <b class="text-slate-300">merge</b> (keep existing) or <b class="text-slate-300">replace</b> everything.</span>
+        <button onclick="clearAllData()" class="ml-auto px-3 py-1.5 text-xs font-medium rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/30 transition">
+          <i class="fa-solid fa-trash-can mr-1"></i>Clear all data
+        </button>
+      </div>
+    </section>
+  {% endblock %}
+
+{% block scripts %}
+  {% include "_gnucash_common.html" %}
+  <script src="/static/js/settings.js?v={{ version }}"></script>
+{% endblock %}

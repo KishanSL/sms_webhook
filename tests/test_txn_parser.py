@@ -1,0 +1,160 @@
+"""Bank transaction SMS parser tests (samples anonymised from real bank formats)."""
+
+import pytest
+
+from app.txn_parser import DEFAULT_BANKS, parse_transaction, sender_header
+
+
+@pytest.mark.parametrize(
+    "sender, expected",
+    [
+        ("AD-HDFCBK-S", "HDFCBK"),
+        ("JX-HDFCBK-S", "HDFCBK"),
+        ("bp-icicit-s", "ICICIT"),
+        ("VM-MYSBIC", "MYSBIC"),
+        ("+919876543210", None),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_sender_header(sender, expected):
+    assert sender_header(sender) == expected
+
+
+def test_hdfc_upi_on_card():
+    text = (
+        "Txn Rs.1043.00\nOn HDFC Bank Card 1111\nAt *4521@ybl \nby UPI 111122223333\n"
+        "On 18-11\nNot You?\nCall 18002586161/SMS BLOCK CC 1111 to 7308080808\n"
+    )
+    txn = parse_transaction("JX-HDFCBK-S", text, DEFAULT_BANKS)
+    assert txn == {
+        "bank": "HDFC Bank",
+        "sender_header": "HDFCBK",
+        "direction": "debit",
+        "amount": 1043.0,
+        "currency": "INR",
+        "instrument": "credit_card",
+        "channel": "upi",
+        "account_last4": "1111",
+        "counterparty": "*4521@ybl",
+        "reference": "111122223333",
+        "balance": None,
+        "balance_type": None,
+    }
+
+
+def test_hdfc_card_spend():
+    text = (
+        "Spent Rs.316 On HDFC Bank Card 2222 At RSP*SWIGGY PVT LTD FOO On 2026-11-16:22:07:48."
+        "Not You? To Block+Reissue Call 18002586161/SMS BLOCK CC 2222 to 7308080808"
+    )
+    txn = parse_transaction("AD-HDFCBK-S", text, DEFAULT_BANKS)
+    assert txn["amount"] == 316.0
+    assert txn["account_last4"] == "2222"
+    assert txn["counterparty"] == "RSP*SWIGGY PVT LTD FOO"
+    assert txn["channel"] == "card"
+
+
+def test_hdfc_card_spend_amount_first():
+    text = (
+        "Rs.2227 spent on HDFC Bank Card x2222 at Swiggy Instamart on 2026-11-22:12:56:43."
+        "Not U? Call 18002586161/SMS BLOCK DC 2222 to 7308080808"
+    )
+    txn = parse_transaction("AD-HDFCBK-S", text, DEFAULT_BANKS)
+    assert txn["amount"] == 2227.0
+    assert txn["account_last4"] == "2222"
+    assert txn["counterparty"] == "Swiggy Instamart"
+    assert txn["direction"] == "debit"
+    assert txn["channel"] == "card"
+
+
+def test_icici_card_spend():
+    text = (
+        "INR 2,063.27 spent using ICICI Bank Card XX3333 on 16-Nov-26 on AMAZON PAY IN E. "
+        "Avl Limit: INR 14,78,671.15. If not you, call 1800 2662/SMS BLOCK 3333 to 9215676766."
+    )
+    txn = parse_transaction("BP-ICICIT-S", text, DEFAULT_BANKS)
+    assert txn["amount"] == 2063.27
+    assert txn["account_last4"] == "3333"
+    assert txn["counterparty"] == "AMAZON PAY IN E"
+    assert txn["balance"] == 1478671.15
+    assert txn["balance_type"] == "limit"
+
+
+def test_axis_card_spend():
+    text = (
+        "Spent INR 8232.84 \nusing Axis Bank Credit Card no. XX4444 on 17-11-26 12:42:03 IST at \n"
+        "RAZ*Furlenc. \nAvl limit: INR 245310.40. Not you? SMS BLOCK 4444 to +919951860002."
+    )
+    txn = parse_transaction("AD-AXISBK-S", text, DEFAULT_BANKS)
+    assert txn["amount"] == 8232.84
+    assert txn["account_last4"] == "4444"
+    assert txn["counterparty"] == "RAZ*Furlenc"
+    assert txn["balance"] == 245310.40
+
+
+def test_axis_account_upi_debit():
+    text = (
+        "INR 10000.00 debited\nA/c no. XX5555\n17-11-26, 12:48:17\nUPI/P2A/123456789012/JOHN DOE\n"
+        "Not you? SMS BLOCKUPI Cust ID to 919951860002\nAxis Bank"
+    )
+    txn = parse_transaction("AD-AXISBK-S", text, DEFAULT_BANKS)
+    assert txn["amount"] == 10000.0
+    assert txn["instrument"] == "account"
+    assert txn["channel"] == "upi"
+    assert txn["account_last4"] == "5555"
+    assert txn["reference"] == "123456789012"
+    assert txn["counterparty"] == "JOHN DOE"
+
+
+def test_idfc_account_debit():
+    text = (
+        "Your A/c XX6666 debited by Rs. 30.00 on 15/11/26; TEA STALL  CORNER credited. "
+        "RRN 123456789012. Available balance Rs. 5,210.35. Team IDFC FIRST Bank"
+    )
+    txn = parse_transaction("AX-IDFCFB-S", text, DEFAULT_BANKS)
+    assert txn["amount"] == 30.0
+    assert txn["instrument"] == "account"
+    assert txn["counterparty"] == "TEA STALL CORNER"
+    assert txn["balance"] == 5210.35
+    assert txn["balance_type"] == "balance"
+
+
+@pytest.mark.parametrize(
+    "sender, text",
+    [
+        # FASTag toll
+        (
+            "VD-IDFCFB-S",
+            "INR 120 toll paid from IDFC FIRST Bank Tag 3XXXE000 for vehicle no. XX00XX0000 at "
+            "Devanahalli Toll Plaza on 18/11/2026 00:27. Avbl. Bal.: INR918.00.",
+        ),
+        # Card statement notice
+        (
+            "VM-MYSBIC-S",
+            "E-statement of SBI Credit Card ending XX00 dated 16/11/2026 has been mailed. "
+            "Total Amt Due Rs 18450; Min Amt Due Rs 369; Payable by 06/12/2026.",
+        ),
+        # Unknown sender with a bank-like message
+        (
+            "AD-SWIGGY-S",
+            "Spent Rs.316 On HDFC Bank Card 2222 At SWIGGY On 2026-11-16:22:07:48.",
+        ),
+        # Personal number
+        ("+919876543210", "Sent you Rs.500"),
+    ],
+)
+def test_non_transactions_ignored(sender, text):
+    assert parse_transaction(sender, text, DEFAULT_BANKS) is None
+
+
+def test_new_header_for_known_bank():
+    """A bank's formats apply to any header linked to it, and only to linked headers."""
+    text = (
+        "INR 349.00 spent using ICICI Bank Card XX3333 on 18-Nov-26 on AMAZON PAY IN E. "
+        "Avl Limit: INR 14,79,164.64."
+    )
+    assert parse_transaction("AD-ICICIB-S", text, DEFAULT_BANKS) is None
+    txn = parse_transaction("AD-ICICIB-S", text, {**DEFAULT_BANKS, "ICICIB": "ICICI Bank"})
+    assert txn["bank"] == "ICICI Bank"
+    assert txn["sender_header"] == "ICICIB"

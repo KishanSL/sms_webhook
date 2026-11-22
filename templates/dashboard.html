@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}Homelab SMS Webhooks{% endblock %}
+{% block page_icon %}fa-comment-sms{% endblock %}
+{% block page_title %}Homelab SMS Webhooks{% endblock %}
+{% block page_subtitle %}SQLite Message487 &amp; SMS storage service{% endblock %}
+{% block header_actions %}
+        <button id="refreshBtn" onclick="fetchWebhooks()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+          <span>Refresh</span>
+        </button>
+{% endblock %}
+{% block content %}
+
+
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center space-x-4 shadow-sm">
+        <div class="p-3 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
+          <i class="fa-solid fa-inbox text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Received</p>
+          <h3 id="statTotal" class="text-2xl font-bold text-white">0</h3>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center space-x-4 shadow-sm">
+        <div class="p-3 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20">
+          <i class="fa-solid fa-mobile-screen text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">SMS Messages</p>
+          <h3 id="statSms" class="text-2xl font-bold text-white">0</h3>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center space-x-4 shadow-sm">
+        <div class="p-3 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20">
+          <i class="fa-solid fa-database text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Database Size</p>
+          <h3 id="statDbSize" class="text-2xl font-bold text-white">0 KB</h3>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 flex items-center space-x-4 shadow-sm">
+        <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
+          <i class="fa-solid fa-clock-rotate-left text-xl"></i>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Last Activity</p>
+          <h3 id="statLastActivity" class="text-sm font-semibold text-slate-200 mt-1 truncate">Never</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-3 flex flex-wrap gap-3 items-center justify-between">
+      <div class="flex flex-1 min-w-[240px] items-center space-x-2">
+        <div class="relative w-full max-w-md">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+          </span>
+          <input type="text" id="searchInput" oninput="debounceFetch()" placeholder="Search messages, senders, device, IDs..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="sourceFilter" onchange="fetchWebhooks()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+          <option value="">All Sources</option>
+          <option value="message487">Source: Message487</option>
+          <option value="sms">Source: SMS</option>
+        </select>
+
+        <select id="typeFilter" onchange="fetchWebhooks()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+          <option value="">All Types</option>
+          <option value="Transaction">Type: Transaction</option>
+          <option value="OTP">Type: OTP</option>
+          <option value="Statement">Type: Statement</option>
+          <option value="Toll / FASTag">Type: Toll / FASTag</option>
+          <option value="Mandate / Autopay">Type: Mandate / Autopay</option>
+          <option value="Broker / Regulatory">Type: Broker / Regulatory</option>
+          <option value="Others">Type: Others</option>
+        </select>
+
+        <select id="readFilter" onchange="fetchWebhooks()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+          <option value="">Read &amp; Unread</option>
+          <option value="false">Unread only</option>
+          <option value="true">Read only</option>
+        </select>
+
+        <label class="flex items-center space-x-2 cursor-pointer text-xs text-slate-400 px-1">
+          <input type="checkbox" id="autoRefreshToggle" checked class="rounded bg-slate-800 border-slate-600 accent-emerald-500 focus:ring-0">
+          <span>Auto-refresh (5s)</span>
+        </label>
+
+        <button id="backfillBtn" onclick="runBackfill()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center" title="Re-classify all messages, update badges, and backfill transactions">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1" id="backfillIcon"></i>Backfill
+        </button>
+
+        <button onclick="openCurlModal()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 transition" title="Webhook endpoints and database location">
+          <i class="fa-solid fa-terminal mr-1"></i>Integration Info
+        </button>
+
+        <button onclick="clearAllData()" class="px-2.5 py-1.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/30 rounded-lg transition" title="Clear All Webhooks">
+          <i class="fa-solid fa-trash-can mr-1"></i>Clear All
+        </button>
+      </div>
+    </div>
+
+    <!-- Webhook Table -->
+    <div class="bg-slate-800/90 border border-slate-700 rounded-xl overflow-hidden shadow-lg">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-[11px] sm:text-xs text-slate-300">
+          <thead class="bg-slate-900/80 text-slate-400 border-b border-slate-700 uppercase tracking-wider font-semibold">
+            <tr>
+              <th scope="col" class="py-2.5 pl-3 pr-1 sm:py-3 sm:pl-4 sm:pr-1 w-8" title="Mark as read"><i class="fa-solid fa-check-double"></i></th>
+              <th scope="col" class="py-2.5 px-3 sm:py-3 sm:px-4">Sender / Time</th>
+              <th scope="col" class="hidden sm:table-cell py-2.5 px-3 sm:py-3 sm:px-4">Type</th>
+              <th scope="col" class="py-2.5 px-3 sm:py-3 sm:px-4">Message / Payload Preview</th>
+              <th scope="col" class="py-2.5 px-3 sm:py-3 sm:px-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="webhooksBody" class="divide-y divide-slate-700/60">
+            <tr>
+              <td colspan="5" class="py-8 text-center text-slate-400">
+                <i class="fa-solid fa-circle-notch fa-spin text-lg mb-2 block text-emerald-400"></i>
+                Loading webhooks...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Inspector Modal (Complete Full Data Viewer) -->
+    <div id="inspectorModal" onclick="if (event.target === this) closeInspectorModal();" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        
+        <!-- Modal Header -->
+        <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-800/95">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm font-bold text-white flex items-center">
+              <i class="fa-solid fa-circle-info text-emerald-400 mr-2"></i>Webhook Event Inspector
+            </span>
+            <span id="modalEventIdBadge" class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300 font-mono"></span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-1 text-slate-400 text-xs mr-2">
+              <button id="modalPrevBtn" onclick="navigateInspector(-1)" class="p-1 px-2 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 transition" title="Previous message (Left arrow)">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <span id="modalNavCounter" class="text-[11px] font-mono text-slate-400 px-1.5"></span>
+              <button id="modalNextBtn" onclick="navigateInspector(1)" class="p-1 px-2 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 transition" title="Next message (Right arrow)">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+            <button onclick="closeInspectorModal()" class="text-slate-400 hover:text-white transition p-1" title="Close (Esc)">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="p-5 overflow-y-auto space-y-4 text-xs">
+          
+          <!-- SMS & Message Hero Box -->
+          <div id="modalSmsHero" class="bg-slate-900 border border-slate-700 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center space-x-2">
+                <span id="modalTypeBadgeContainer">
+                  <span id="modalTypeBadge" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold uppercase tracking-wider text-[10px]">SMS</span>
+                </span>
+                <span class="text-slate-400">From: </span>
+                <span id="modalSmsFrom" class="text-emerald-300 font-mono font-bold text-sm"></span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span id="modalOccurredAt" class="text-[11px] text-slate-400 font-mono"></span>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer text-slate-300 text-xs px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 transition" title="Mark as read / unread">
+                  <input type="checkbox" id="modalReadCheckbox" onchange="toggleModalRead(this)" class="w-3.5 h-3.5 rounded bg-slate-800 border-slate-600 accent-emerald-500 focus:ring-0 cursor-pointer">
+                  <span>Read</span>
+                </label>
+                <button onclick="copyElementText('modalSmsBody', this)" class="px-2 py-0.5 text-[11px] text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 transition" title="Copy full message text">
+                  <i class="fa-regular fa-copy mr-1"></i>Copy
+                </button>
+              </div>
+            </div>
+            <div class="mt-2">
+              <div id="modalSmsBody" class="bg-slate-950 text-slate-100 p-3 rounded-lg border border-slate-800 font-mono text-xs whitespace-pre-wrap leading-relaxed select-text"></div>
+            </div>
+          </div>
+
+          <!-- Metadata Grid (All columns) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/70 p-3.5 rounded-xl border border-slate-700/60">
+            <div><span class="text-slate-400 block text-[11px]">Database ID:</span><span id="modalId" class="text-slate-200 font-mono font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[11px]">Device Code:</span><span id="modalDeviceCode" class="text-emerald-400 font-mono"></span></div>
+            <div><span class="text-slate-400 block text-[11px]">Device ID:</span><span id="modalDeviceId" class="text-slate-300 font-mono truncate block" title=""></span></div>
+            <div><span class="text-slate-400 block text-[11px]">Source / App:</span><span id="modalSource" class="text-slate-200 font-mono"></span></div>
+            <div><span class="text-slate-400 block text-[11px]">Received Server Time:</span><span id="modalReceivedAt" class="text-slate-200 font-mono text-[11px]"></span></div>
+            <div><span class="text-slate-400 block text-[11px]">HTTP Method &amp; Path:</span><span id="modalMethodPath" class="text-slate-200 font-mono"></span></div>
+            <div><span class="text-slate-400 block text-[11px]">Client IP:</span><span id="modalClientIp" class="text-slate-200 font-mono"></span></div>
+            <div><span class="text-slate-400 block text-[11px]">Content-Type:</span><span id="modalContentType" class="text-slate-200 font-mono truncate block"></span></div>
+          </div>
+
+          <!-- Full Formatted JSON Payload -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-slate-300 font-semibold flex items-center">
+                <i class="fa-solid fa-code text-blue-400 mr-1.5"></i>Full Stored Payload (JSON / Body)
+              </label>
+              <div class="flex items-center space-x-2">
+                <span class="text-[10px] text-slate-500 font-mono">Complete SQLite payload_json column</span>
+                <button onclick="copyElementText('modalPayload', this)" class="px-2 py-0.5 text-[11px] text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 transition" title="Copy payload">
+                  <i class="fa-regular fa-copy mr-1"></i>Copy
+                </button>
+              </div>
+            </div>
+            <pre id="modalPayload" class="bg-slate-950 p-3.5 rounded-xl border border-slate-700/80 text-emerald-300 font-mono text-[11px] overflow-x-auto max-h-56 select-text"></pre>
+          </div>
+
+          <!-- Full HTTP Headers -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-slate-300 font-semibold flex items-center">
+                <i class="fa-solid fa-heading text-purple-400 mr-1.5"></i>Complete HTTP Request Headers
+              </label>
+              <div class="flex items-center space-x-2">
+                <span class="text-[10px] text-slate-500 font-mono">Complete SQLite headers column</span>
+                <button onclick="copyElementText('modalHeaders', this)" class="px-2 py-0.5 text-[11px] text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 transition" title="Copy headers">
+                  <i class="fa-regular fa-copy mr-1"></i>Copy
+                </button>
+              </div>
+            </div>
+            <pre id="modalHeaders" class="bg-slate-950 p-3.5 rounded-xl border border-slate-700/80 text-slate-300 font-mono text-[11px] overflow-x-auto max-h-40 select-text"></pre>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-5 py-3 border-t border-slate-700 bg-slate-800/90 flex items-center justify-between">
+          <span class="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <span>Navigate:</span>
+            <kbd class="px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 font-mono text-[10px]">&#8592;</kbd>
+            <kbd class="px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 font-mono text-[10px]">&#8594;</kbd>
+            <span class="ml-2">Close:</span>
+            <kbd class="px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 font-mono text-[10px]">Esc</kbd>
+          </span>
+          <button onclick="closeInspectorModal()" class="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-medium transition">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Integration Modal -->
+    <div id="curlModal" onclick="if (event.target === this) closeCurlModal();" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i class="fa-solid fa-code text-emerald-400"></i>
+            <span>Homelab Webhook Endpoints</span>
+          </h3>
+          <button onclick="closeCurlModal()" class="text-slate-400 hover:text-white transition">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <div class="p-5 overflow-y-auto space-y-4 text-xs">
+          <div>
+            <span class="font-bold text-slate-200 block mb-1">Active Message487 Webhook Endpoint</span>
+            <pre id="modalCurlUrl" class="bg-slate-950 p-3 rounded-lg border border-slate-700/70 text-emerald-300 font-mono select-all overflow-x-auto">https://sms.yourdomain.com:8443/webhook/message487</pre>
+          </div>
+
+          <div>
+            <span class="font-bold text-slate-200 block mb-1">Local SQLite Database Location</span>
+            <pre class="bg-slate-950 p-3 rounded-lg border border-slate-700/70 text-slate-300 font-mono select-all overflow-x-auto">/app/data/webhooks.db</pre>
+          </div>
+        </div>
+
+        <div class="px-5 py-3 border-t border-slate-700 bg-slate-800/90 flex justify-end">
+          <button onclick="closeCurlModal()" class="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-medium transition">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  {% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/dashboard.js?v={{ version }}"></script>
+{% endblock %}

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Pre-push checks: lint (ruff), types (mypy) and tests (pytest).
+# Installed via `git config core.hooksPath githooks`.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Prefer the project virtualenv, fall back to the PATH.
+pick() {
+  if [ -x "./venv/bin/$1" ]; then echo "./venv/bin/$1"; else echo "$1"; fi
+}
+PY=$(pick python)
+RUFF=$(pick ruff)
+MYPY=$(pick mypy)
+
+echo "▶ pre-push: ruff"
+"$RUFF" check app tests run.py scripts
+
+echo "▶ pre-push: mypy"
+"$MYPY" app
+
+echo "▶ pre-push: pytest"
+"$PY" -m pytest -q
+
+if command -v node >/dev/null 2>&1; then
+  echo "▶ pre-push: node --check (static/js)"
+  for f in static/js/*.js; do node --check "$f"; done
+  echo "▶ pre-push: node --test (frontend)"
+  node --test tests/test_frontend.test.js
+fi
+
+echo "✔ pre-push: all checks passed"

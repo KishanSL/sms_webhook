@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment and sensitive secrets
+.env
+.env.local
+*.ini
+cloudflare.ini
+
+# SQLite Database and SMS logs (keep directory, exclude data files)
+data/*.db*
+!data/.gitkeep
+
+# TLS/SSL Certificates and private keys (keep directory, exclude keys)
+certs/*.key
+certs/*.pem
+certs/*.crt
+certs/*.der
+certs/*.srl
+certs/*.csr
+certs/letsencrypt/
+!certs/.gitkeep
+
+# Local binaries
+cloudflared
+
+# IDE and OS
+.DS_Store
+.vscode/
+.idea/
+
+# Local review notes
+docs/QC.md

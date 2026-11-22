@@ -1,0 +1,37 @@
+# Python environment
+venv/
+env/
+.Python
+
+# Git and testing
+.git/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*$py.class
+tests/
+
+# Sensitive secrets & credentials
+.env
+.env.*
+*.ini
+cloudflare.ini
+
+# SQLite databases (data mounted at runtime)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# SSL/TLS certificates (certs mounted at runtime)
+certs/
+*.key
+*.pem
+*.crt
+*.der
+*.csr
+*.srl
+
+# Local binaries
+cloudflared

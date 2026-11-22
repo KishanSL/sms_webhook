@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><path d='M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8'/><path d='M12 6v2'/><path d='M12 16v2'/></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    pre code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    /* Read rows are dimmed, but the controls (selection, read, gnucash) stay crisp. */
+    tr.is-read td:not(.keep) { opacity: 0.55; }
+    .accent-unread { box-shadow: inset 3px 0 0 #10b981; }
+    /* Three-line message preview (works without a Tailwind line-clamp plugin). */
+    .preview-3 {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+  {% set path = request.url.path %}
+
+  <!-- Header: identical structure on every page -->
+  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-20 shadow-md">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap gap-3 items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
+      <div class="flex items-center space-x-3 min-w-0 justify-self-start">
+        <div class="bg-emerald-500/20 text-emerald-400 p-2 rounded-lg border border-emerald-500/30 shrink-0">
+          <i class="fa-solid {% block page_icon %}fa-comment-sms{% endblock %} text-xl"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg font-bold text-white tracking-tight truncate">{% block page_title %}{{ app_name }}{% endblock %}</h1>
+          <p class="text-xs text-slate-400 truncate">{% block page_subtitle %}{% endblock %}</p>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center justify-center gap-1 bg-slate-900/60 border border-slate-700 rounded-lg p-1 text-xs font-medium justify-self-center">
+        <a href="/dashboard" class="px-2 sm:px-3 py-1 rounded-md whitespace-nowrap {{ 'bg-emerald-600 text-white' if path in ['/', '/dashboard'] else 'text-slate-400 hover:text-white hover:bg-slate-700/60 transition' }}">
+          <i class="fa-solid fa-inbox mr-1"></i>Messages
+        </a>
+        <a href="/transactions" class="px-2 sm:px-3 py-1 rounded-md whitespace-nowrap {{ 'bg-emerald-600 text-white' if path == '/transactions' else 'text-slate-400 hover:text-white hover:bg-slate-700/60 transition' }}">
+          <i class="fa-solid fa-indian-rupee-sign mr-1"></i>Transactions
+        </a>
+        <a href="/cards" class="px-2 sm:px-3 py-1 rounded-md whitespace-nowrap {{ 'bg-emerald-600 text-white' if path == '/cards' else 'text-slate-400 hover:text-white hover:bg-slate-700/60 transition' }}">
+          <i class="fa-solid fa-credit-card mr-1"></i>Cards
+        </a>
+        <a href="/settings" class="px-2 sm:px-3 py-1 rounded-md whitespace-nowrap {{ 'bg-emerald-600 text-white' if path == '/settings' else 'text-slate-400 hover:text-white hover:bg-slate-700/60 transition' }}">
+          <i class="fa-solid fa-gear mr-1"></i>Settings
+        </a>
+      </nav>
+
+      <div class="flex items-center space-x-2 justify-self-end">
+        {% block header_actions %}
+        <button onclick="location.reload()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+          <span>Refresh</span>
+        </button>
+        {% endblock %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Body: identical container on every page -->
+  <main class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Global status toast -->
+  <div id="toast" class="hidden fixed bottom-4 right-4 z-50 px-4 py-2.5 rounded-lg text-xs font-medium shadow-lg"></div>
+
+  <script src="/static/js/common.js?v={{ version }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

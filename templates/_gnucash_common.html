@@ -1,0 +1,4 @@
+{# Shared gnucash helpers: sets the enabled flag and loads the picker script.
+   Included by transactions.html and settings.html. Requires `gnucash_enabled` and `version`. #}
+<script>window.GNUCASH_ENABLED = {{ 'true' if gnucash_enabled else 'false' }};</script>
+<script src="/static/js/gnucash.js?v={{ version }}"></script>
