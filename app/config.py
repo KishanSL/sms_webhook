@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # App info
     APP_NAME: str = "Homelab HTTPS SMS Webhook Service"
-    APP_VERSION: str = "1.6.1"
+    APP_VERSION: str = "1.6.2"
 
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
