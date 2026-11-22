@@ -120,6 +120,53 @@ def test_idfc_account_debit():
     assert txn["balance_type"] == "balance"
 
 
+def test_onecard_spend():
+    text = (
+        "Superb choice! Rs. 250.00 spent at Coffee House on your BOBCARD One Credit Card xxXX7777. "
+        "Reward points added. To dispute, click: https://1crd.in/sample/dispute"
+    )
+    txn = parse_transaction("AX-BOBONE-S", text, DEFAULT_BANKS)
+    assert txn == {
+        "bank": "OneCard",
+        "sender_header": "BOBONE",
+        "direction": "debit",
+        "amount": 250.0,
+        "currency": "INR",
+        "instrument": "credit_card",
+        "channel": "card",
+        "account_last4": "7777",
+        "counterparty": "Coffee House",
+        "reference": None,
+        "balance": None,
+        "balance_type": None,
+    }
+
+
+def test_onecard_spend_variations():
+    # Card first variation
+    text1 = "Rs. 250.00 spent on your BOBCARD One Credit Card xxXX7777 at Coffee House."
+    txn1 = parse_transaction("AX-BOBONE-S", text1, DEFAULT_BANKS)
+    assert txn1["amount"] == 250.0
+    assert txn1["account_last4"] == "7777"
+    assert txn1["counterparty"] == "Coffee House"
+
+    # OneCard ending 1234 with ONECRD sender
+    text2 = "Spent Rs. 500 at Amazon on your OneCard ending 1234."
+    txn2 = parse_transaction("VM-ONECRD-S", text2, DEFAULT_BANKS)
+    assert txn2["bank"] == "OneCard"
+    assert txn2["amount"] == 500.0
+    assert txn2["account_last4"] == "1234"
+    assert txn2["counterparty"] == "Amazon"
+
+    # BOBCRD header
+    text3 = "Superb choice! Rs. 10.00 spent at Tea Stall on your BOBCARD One Card 9999."
+    txn3 = parse_transaction("BP-BOBCRD-S", text3, DEFAULT_BANKS)
+    assert txn3["bank"] == "BOBCARD"
+    assert txn3["amount"] == 10.0
+    assert txn3["account_last4"] == "9999"
+    assert txn3["counterparty"] == "Tea Stall"
+
+
 @pytest.mark.parametrize(
     "sender, text",
     [

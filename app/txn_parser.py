@@ -18,6 +18,7 @@ DEFAULT_BANKS: dict[str, str] = {
     "MYSBIC": "SBI Card",
     "BOBONE": "OneCard",
     "BOBCRD": "BOBCARD",
+    "ONECRD": "OneCard",
 }
 
 HEADER_RE = re.compile(r"^[A-Z0-9]{6}$")
@@ -77,6 +78,18 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
             r"(?P<counterparty>.+?) credited\. RRN (?P<reference>\d+)\. "
             r"Available balance Rs\.?\s*(?P<balance>AMT)[\s\S]*IDFC FIRST Bank"),
         {"direction": "debit", "instrument": "account", "balance_type": "balance"},
+    ),
+    # OneCard / BOBCARD One: Superb choice! Rs. 250.00 spent at Coffee House on your BOBCARD One Credit Card xxXX7777. Reward points added.
+    (
+        _re(r"(?:Spent\s+)?(?:Rs\.?|INR)\s*(?P<amount>AMT)\s+(?:spent\s+)?at\s+(?P<counterparty>.+?)\s+"
+            r"on your (?:BOBCARD\s+)?One(?:\s*Credit)?\s*Card\s+(?:no\.?\s*|ending\s+)?(?:[x*]+)?(?P<last4>\d{4})\b"),
+        {"direction": "debit", "instrument": "credit_card", "channel": "card"},
+    ),
+    # OneCard / BOBCARD One (card first): Rs. 250.00 spent on your BOBCARD One Credit Card xxXX7777 at Coffee House
+    (
+        _re(r"(?:Spent\s+)?(?:Rs\.?|INR)\s*(?P<amount>AMT)\s+(?:spent\s+)?on your (?:BOBCARD\s+)?One(?:\s*Credit)?\s*Card\s+"
+            r"(?:no\.?\s*|ending\s+)?(?:[x*]+)?(?P<last4>\d{4})\b\s+at\s+(?P<counterparty>.+?)(?:\.|\s+On|\s+Reward|$)"),
+        {"direction": "debit", "instrument": "credit_card", "channel": "card"},
     ),
 ]
 

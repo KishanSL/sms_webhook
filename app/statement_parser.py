@@ -104,10 +104,10 @@ def parse_card_statement(
 
     # Template 2: OneCard / BOBCARD One
     # e.g.: Your BOBCARD One Credit Card bill of Rs. 0.00 is ready. Pay by 05 Dec, 2026 via the OneCard app
-    if header in ("BOBONE", "BOBCRD") and ("bill" in lower or "statement" in lower):
+    if header in ("BOBONE", "BOBCRD", "ONECRD") and ("bill" in lower or "statement" in lower):
         total_m = re.search(rf"(?:bill\s+of|total\s+amt\s+due)\s*(?:rs\.?|inr)?\s*({AMT})", text, re.IGNORECASE)
         due_date_m = re.search(rf"(?:pay\s+by|due\s+on|due\s+date)\s*:?\s*{DATE}", text, re.IGNORECASE)
-        ending_m = re.search(r"ending\s+(?:xx|\*+)?\s*(\d{2,4})", text, re.IGNORECASE)
+        ending_m = re.search(r"(?:card\s*(?:no\.?)?\s*(?:xx|\*+)?|ending\s+(?:xx|\*+)?|(?:xx|\*+))\s*(\d{2,4})", text, re.IGNORECASE)
         if total_m or due_date_m:
             return {
                 "bank": bank,

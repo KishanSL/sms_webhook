@@ -24,6 +24,13 @@ def test_classify_transaction():
     )
     assert classify_message_text(msg, sender="AX-HDFCBK-S") == TYPE_TRANSACTION
 
+    # BOBONE OneCard debit match
+    bobone_msg = (
+        "Superb choice! Rs. 250.00 spent at Coffee House on your BOBCARD One Credit Card xxXX7777. "
+        "Reward points added. To dispute, click: https://1crd.in/sample/dispute"
+    )
+    assert classify_message_text(bobone_msg, sender="AX-BOBONE-S") == TYPE_TRANSACTION
+
     # Explicit flag (e.g. from transactions table link)
     assert classify_message_text("Some random text", is_transaction=True) == TYPE_TRANSACTION
 
@@ -66,8 +73,8 @@ def test_classify_statement():
 
 def test_classify_toll():
     samples = [
-        "INR 120 toll paid from IDFC FIRST Bank Tag 3XXXE980 for vehicle no. AS01FB3450 at Devanahalli Toll Plaza on 18/11/2026 00:27. Avbl. Bal.: INR918.00.",
-        "INR 85 toll paid from IDFC FIRST Bank Tag 3XXXE980 for vehicle no. AS01FB3450 at Nalluru Devanahalli on 18/11/2026 01:55. Avbl. Bal.: INR833.00.",
+        "INR 120 toll paid from IDFC FIRST Bank Tag 3XXXE000 for vehicle no. KA01XX0000 at Devanahalli Toll Plaza on 18/11/2026 00:27. Avbl. Bal.: INR918.00.",
+        "INR 85 toll paid from IDFC FIRST Bank Tag 3XXXE000 for vehicle no. KA01XX0000 at Nalluru Devanahalli on 18/11/2026 01:55. Avbl. Bal.: INR833.00.",
         "Your FASTag account was debited with Rs 150 for toll plaza.",
     ]
     for s in samples:
@@ -95,7 +102,7 @@ def test_classify_broker():
 
 def test_classify_others():
     samples = [
-        "Dear KRITISHA SEN LASKAR, your appointment with Dr Dr. JAYANTH SUNDAR SAMPATH has been cancelled.",
+        "Dear Customer, your appointment with Dr. Sample Doctor has been cancelled.",
         "Thank you for ordering with Burger King! Here's your E-bill: ez.easyrz.co/xyz",
         "Hi Customer, your RuPay BOBCARD Credit Card requires your confirmation.",
         "Podman container test SMS",
