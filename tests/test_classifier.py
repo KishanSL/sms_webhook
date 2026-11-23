@@ -39,6 +39,7 @@ def test_classify_otp():
     samples = [
         "OTP is 672330 for txn of INR 384.00 at SWIGGY INST on HDFC Bank card ending 9012. Valid till 10:21.",
         "Hi Your login OTP for Burger King App is 8742.",
+        "Sample App login code: 844171.\nValid for 3 mins. Account cannot be accessed without this code.",
         "Your Book An Appointment One Time Password is 875075 Team Rainbow",
         "283003 is One-Time Password for INR 189.00 transaction towards AMAZON using ICICI Bank Credit Card XX7531.",
         "357971 is SECRET OTP for txn of INR 420.00 on Axis Bank card XX8642 at Google on 20-11-26 01:38:08.",

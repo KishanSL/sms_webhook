@@ -39,7 +39,7 @@ ALL_TYPES = [
 
 # Case-insensitive regular expressions for classification
 OTP_RE = re.compile(
-    r"(\bOTP\b|\bOne[- ]Time Password\b|\bverification code\b|\blogin OTP\b|\bSECRET OTP\b|\bPasscode\b)",
+    r"(\bOTP\b|\bOne[- ]Time Password\b|\bverification code\b|\blogin OTP\b|\blogin code\b|\bSECRET OTP\b|\bPasscode\b)",
     re.IGNORECASE,
 )
 

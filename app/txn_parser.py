@@ -55,9 +55,10 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
         {"direction": "debit", "instrument": "credit_card", "channel": "card"},
     ),
     # ICICI: INR 789.00 spent using ICICI Bank Card XX3333 on 15-Nov-26 on AMAZON PAY IN G. Avl Limit: INR 1,48,126.50
+    # ICICI: Rs 25,000.00 spent on ICICI Bank Card XX3333 on 23-Nov-26 at AMAZON. Avl Lmt: Rs 1,00,000.00
     (
-        _re(r"INR (?P<amount>AMT) spent using ICICI Bank Card XX(?P<last4>\d{4}) on \S+ "
-            r"on (?P<counterparty>.+?)\.\s+Avl Limit: INR (?P<balance>AMT)"),
+        _re(r"(?:INR|Rs\.?)\s*(?P<amount>AMT)\s+spent\s+(?:using|on)\s+ICICI Bank Card\s+XX(?P<last4>\d{4})\s+on\s+\S+\s+"
+            r"(?:on|at)\s+(?P<counterparty>.+?)\.\s+Avl\s+L(?:i)?m(?:i)?t:\s*(?:INR|Rs\.?)\s*(?P<balance>AMT)"),
         {"direction": "debit", "instrument": "credit_card", "channel": "card", "balance_type": "limit"},
     ),
     # Axis: Spent INR 199 using Axis Bank Credit Card no. XX4444 on 17-11-26 01:01:49 IST at GOOGLE PLAY. Avl limit: INR 245509.40
@@ -74,10 +75,16 @@ PATTERNS: list[tuple[re.Pattern[str], dict[str, str]]] = [
     ),
     # IDFC: Your A/c XX6666 debited by Rs. 30.00 on 15/11/26; TEA STALL credited. RRN 123456789012. Available balance Rs. 5,210.35. Team IDFC FIRST Bank
     (
-        _re(r"Your A/c XX(?P<last4>\d{4}) debited by Rs\.?\s*(?P<amount>AMT) on \S+; "
+        _re(r"Your A/c\s+[x*]*(?:\d*?)(?P<last4>\d{4})\s+debited by Rs\.?\s*(?P<amount>AMT) on \S+; "
             r"(?P<counterparty>.+?) credited\. RRN (?P<reference>\d+)\. "
             r"Available balance Rs\.?\s*(?P<balance>AMT)[\s\S]*IDFC FIRST Bank"),
         {"direction": "debit", "instrument": "account", "balance_type": "balance"},
+    ),
+    # IDFC credit: Your A/C XXXXX123456 is credited with INR 2,000.00 on 23/11/26 12:51. Your new balance is INR 6,784.87. Team IDFC FIRST Bank
+    (
+        _re(r"Your A/c\s+[x*]*(?:\d*?)(?P<last4>\d{4})\s+is credited with\s+(?:INR|Rs\.?)\s*(?P<amount>AMT)\s+on\s+[^.]+\.\s+"
+            r"Your new balance is\s+(?:INR|Rs\.?)\s*(?P<balance>AMT)[\s\S]*IDFC FIRST Bank"),
+        {"direction": "credit", "instrument": "account", "balance_type": "balance"},
     ),
     # OneCard / BOBCARD One: Superb choice! Rs. 250.00 spent at Coffee House on your BOBCARD One Credit Card xxXX7777. Reward points added.
     (

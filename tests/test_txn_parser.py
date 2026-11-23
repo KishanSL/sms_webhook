@@ -81,6 +81,28 @@ def test_icici_card_spend():
     assert txn["balance_type"] == "limit"
 
 
+def test_icici_card_spend_variation():
+    text = (
+        "Rs 25,000.00 spent on ICICI Bank Card XX3333 on 23-Nov-26 at MERCHANT STORE. "
+        "Avl Lmt: Rs 1,00,000.00. To dispute, call 18002662/SMS BLOCK 3333 to 9215676766."
+    )
+    txn = parse_transaction("BP-ICICIT-S", text, DEFAULT_BANKS)
+    assert txn == {
+        "bank": "ICICI Bank",
+        "sender_header": "ICICIT",
+        "direction": "debit",
+        "amount": 25000.0,
+        "currency": "INR",
+        "instrument": "credit_card",
+        "channel": "card",
+        "account_last4": "3333",
+        "counterparty": "MERCHANT STORE",
+        "reference": None,
+        "balance": 100000.0,
+        "balance_type": "limit",
+    }
+
+
 def test_axis_card_spend():
     text = (
         "Spent INR 8232.84 \nusing Axis Bank Credit Card no. XX4444 on 17-11-26 12:42:03 IST at \n"
@@ -118,6 +140,28 @@ def test_idfc_account_debit():
     assert txn["counterparty"] == "TEA STALL CORNER"
     assert txn["balance"] == 5210.35
     assert txn["balance_type"] == "balance"
+
+
+def test_idfc_account_credit():
+    text = (
+        "Your A/C XXXXX123456 is credited with INR 2,000.00 on 23/11/26 12:51. "
+        "Your new balance is INR 6,784.87. Team IDFC FIRST Bank"
+    )
+    txn = parse_transaction("AD-IDFCFB-S", text, DEFAULT_BANKS)
+    assert txn == {
+        "bank": "IDFC First Bank",
+        "sender_header": "IDFCFB",
+        "direction": "credit",
+        "amount": 2000.0,
+        "currency": "INR",
+        "instrument": "account",
+        "channel": None,
+        "account_last4": "3456",
+        "counterparty": None,
+        "reference": None,
+        "balance": 6784.87,
+        "balance_type": "balance",
+    }
 
 
 def test_onecard_spend():
