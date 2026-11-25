@@ -494,7 +494,7 @@ git config core.hooksPath githooks   # enable it once per clone
 
 ## 10. Docker & Podman Compose Production Deployment
 
-The project is fully containerized and published on Docker Hub as [`docker.io/kishansl/sms-webhook:1.6.3`](https://hub.docker.com/r/kishansl/sms-webhook).
+The project is fully containerized and published on Docker Hub as [`docker.io/kishansl/sms-webhook:1.6.4`](https://hub.docker.com/r/kishansl/sms-webhook).
 
 ### Production `docker-compose.yml`
 
@@ -588,7 +588,7 @@ podman run -d --name sms-webhook \
   -e SSL_CERTFILE=/app/certs/cert.pem \
   -e SSL_KEYFILE=/app/certs/key.pem \
   -e DB_PATH=/app/data/webhooks.db \
-  docker.io/kishansl/sms-webhook:1.6.3
+  docker.io/kishansl/sms-webhook:1.6.4
 ```
 
 ---
