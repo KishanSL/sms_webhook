@@ -44,7 +44,7 @@ OTP_RE = re.compile(
 )
 
 STATEMENT_RE = re.compile(
-    r"(\be-statement\b|\bstatement generated\b|\bstatement for\b|\bcredit card bill\b|\bbill of rs\.?\b|\btotal (?:amt|amount) due\b|\bstatement dated\b|\bcard statement\b)",
+    r"(\be-statement\b|\bstatement generated\b|\bstatement for\b|\bcredit card bill\b|\bbill of rs\.?\b|\btotal (?:amt|amount) due\b|\bstatement dated\b|\bcard statement\b|\bstatement is sent\b|\bcredit card.*statement\b)",
     re.IGNORECASE,
 )
 

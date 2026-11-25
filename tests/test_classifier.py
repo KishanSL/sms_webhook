@@ -55,6 +55,7 @@ def test_classify_statement():
         ("CP-AXISBK-S", "Your statement for Axis Bank Credit Card no. XX8642 is generated. Due on: 08-12-26 Total amt: INR Dr. 42310.55 Min amt due: INR Dr. 912.00"),
         ("VM-BOBONE-S", "Your BOBCARD One Credit Card bill of Rs. 0.00 is ready. Pay by 05 Dec, 2026 via the OneCard app"),
         ("BP-HDFCBK-S", "Statement Generated: For HDFC Bank Credit Card XX9012. View: https://hdfc.bank.in"),
+        ("BP-ICICIT-S", "ICICI Bank Credit Card XX1234 Statement is sent to test.user@example.com. Total of Rs 15,000.00 or minimum of Rs 750.00 is due by 06-DEC-26."),
     ]
     for sender, s in samples:
         assert classify_message_text(s, sender=sender) == TYPE_STATEMENT

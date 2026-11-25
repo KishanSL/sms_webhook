@@ -62,6 +62,20 @@ def test_parse_card_statement():
         "min_due": None,
         "due_date": None,
     }
+    # ICICI Bank Amazon Pay
+    icici_msg = (
+        "ICICI Bank Credit Card XX1234 Statement is sent to test.user@example.com. "
+        "Total of Rs 15,000.00 or minimum of Rs 750.00 is due by 06-DEC-26."
+    )
+    assert parse_card_statement("BP-ICICIT-S", icici_msg, DEFAULT_BANKS) == {
+        "bank": "ICICI Bank",
+        "sender_header": "ICICIT",
+        "account_last4": "1234",
+        "statement_date": None,
+        "total_due": 15000.0,
+        "min_due": 750.0,
+        "due_date": "2026-12-06",
+    }
     # not a linked bank / not a statement
     assert parse_card_statement("AD-SWIGGY-S", SBI_STATEMENT, DEFAULT_BANKS) is None
     assert parse_card_statement("VM-MYSBIC-S", "Hello there", DEFAULT_BANKS) is None
@@ -239,3 +253,47 @@ async def test_axis_onecard_hdfc_statements_ingest_and_cards(cards_db):
         cards_after = (await client.get("/api/cards")).json()
         hdfc_after = next(c for c in cards_after if c["sender_header"] == "HDFCBK")
         assert hdfc_after["paid"] is True
+
+
+@pytest.mark.anyio
+async def test_icici_amazon_pay_statement_ingest_and_cards(cards_db):
+    """Test ICICI Amazon Pay credit card statement ingestion, parsing, and /api/cards display."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        # Ingest ICICI statement with synthetic mock data (no user PII or real card number)
+        payload = {
+            "event_id": "icici_stmt_mock_1",
+            "sender": "BP-ICICIT-S",
+            "text": (
+                "ICICI Bank Credit Card XX1234 Statement is sent to test.user@example.com. "
+                "Total of Rs 15,000.00 or minimum of Rs 750.00 is due by 06-DEC-26."
+            ),
+            "occurred_at": "2026-11-25T11:25:37Z",
+        }
+        res = await client.post("/webhook/message487", json=payload)
+        assert res.status_code == 200
+
+        cards = (await client.get("/api/cards")).json()
+        icici_card = next(
+            (c for c in cards if c["sender_header"] == "ICICIT" and c["account_last4"] == "1234"),
+            None,
+        )
+        assert icici_card is not None
+        assert icici_card["bank"] == "ICICI Bank"
+        assert icici_card["account_last4"] == "1234"
+        assert icici_card["has_statement"] is True
+        assert icici_card["total_due"] == 15000.0
+        assert icici_card["min_due"] == 750.0
+        assert icici_card["due_date"] == "2026-12-06"
+        assert icici_card["statement_date"] == "2026-11-25"
+        assert icici_card["paid"] is False
+
+        # Mark as paid
+        put_res = await client.put("/api/cards/ICICIT/1234/paid", json={"paid": True})
+        assert put_res.status_code == 200
+
+        cards_after = (await client.get("/api/cards")).json()
+        icici_after = next(c for c in cards_after if c["sender_header"] == "ICICIT" and c["account_last4"] == "1234")
+        assert icici_after["paid"] is True
+        assert icici_after["paid_at"] is not None
+
